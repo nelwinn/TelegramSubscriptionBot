@@ -51,7 +51,8 @@ async def main():
 
                 await conv.send_message("Please enter your Check Size: ")
                 check_size = (await conv.get_response()).text
-
+                
+                #Call to store_details function
                 success = await store_details({"user_id": event.sender.id, "fund_name": fund_name,
                                      "fund_website": fund_website, "fund_size": fund_size,
                                      "stage_of_invest": stage_of_invest, "preferred_deal": preferred_deal,
