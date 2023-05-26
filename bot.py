@@ -19,7 +19,7 @@ async def main():
                                    buttons=[[Button.text("Get started")]])
             
         @bot.on(events.NewMessage(pattern="Get Started"))
-        async def handle_new_user(event):
+        async def handle_new_user(event, existing_user=False):
             """
             Each questions mentioned below can be edited/deleted/added according to your needs.
             Make sure to update the variable names also to avoid confusion.
@@ -59,7 +59,7 @@ async def main():
                 success = await store_details({"user_id": event.sender.id, "fund_name": fund_name,
                                      "fund_website": fund_website, "fund_size": fund_size,
                                      "stage_of_invest": stage_of_invest, "preferred_deal": preferred_deal,
-                                     "check_size": check_size, "name": name})
+                                     "check_size": check_size, "name": name}, existing_user=existing_user)
                 if success:
                     await conv.send_message("Your details are successfully stored.",
                                             buttons=[[Button.text("Menu ➡️")]])
@@ -77,10 +77,19 @@ async def main():
                 token = (await conv.get_response()).text
                 response = await add_subscription(token, event.sender.id)
                 await conv.send_message(response, buttons=[[Button.text("Menu ➡️")]])
+        
         @bot.on(events.NewMessage(pattern="Unsubscribe"))
         async def unsubscribe(event):
             await remove_subscription(event.sender.id)
             await bot.send_message(event.sender.id, "Your subscription is removed.",buttons=[[Button.text("Menu ➡️")]])
+        
+        @bot.on(events.NewMessage(pattern="Notification Customization"))
+        async def notification_customisation(event):
+            await bot.send_message(event.sender.id, "Select an option below: ",buttons=NOTIFICATION_CUSTOMIZATION_OPTIONS)
+
+        @bot.on(events.NewMessage(pattern="Edit your details"))
+        async def edit_user_details(event):
+            await handle_new_user(event, existing_user=True)
         await bot.run_until_disconnected()
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())

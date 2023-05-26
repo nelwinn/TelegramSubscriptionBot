@@ -6,10 +6,14 @@ USERS = db.users
 TOKENS = db.tokens
 ADMINS = db.admins
 
-async def store_details(document):
+async def store_details(document, existing_user):
     q = USERS.find_one({"user_id": document["user_id"]})
     q = await q.to_list(1)
-    document['active'] = 0 #Subscription is not yet active
+    if not existing_user:
+        document['active'] = 0 #Subscription is not yet active
+    else:
+        document['active'] = 1
+    document['max_daily_notifications'] = 999
     if q:
         await USERS.delete_one({"user_id": document["user_id"]})
     q = await USERS.insert_one(document)
