@@ -90,6 +90,25 @@ async def main():
         @bot.on(events.NewMessage(pattern="Edit your details"))
         async def edit_user_details(event):
             await handle_new_user(event, existing_user=True)
+
+        @bot.on(events.NewMessage(pattern="Edit Notification Preferences"))
+        async def edit_preferences(event):
+            async with bot.conversation(event.sender.id, timeout=1500) as conv:
+                await conv.send_message("Enter the number of notifications you would like to receive daily: ")
+                num = (await conv.get_response()).text
+                if not num.isdigit():
+                    await update_notif_preferences(event.sender.id, num)
+                    await conv.send_message("Succesfully updated your preferences.")
+        
+        @bot.on(events.NewMessage(pattern="/dashboard"))
+        async def admin_dashboard(event):
+            admins = [x['username'] for x in await get_all_admins()]
+            if not event.sender.username in admins or not event.sender.id in admins:
+                return await event.reply("Not authorized")
+            
+            buttons = CREATER_ONLY_BUTTONS + DASHBOARD_BUTTONS if event.sender.username == BOT_OWNER else DASHBOARD_BUTTONS
+            await bot.send_message("Welcome to Admin dashboard.", buttons=buttons)
+            
         await bot.run_until_disconnected()
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
