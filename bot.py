@@ -47,7 +47,8 @@ async def main():
                 if success:
                     await conv.send_message("Your details are successfully stored.",
                                             buttons=[[Button.text("Menu ➡️")]])
-                    
+                else:
+                    await conv.send_message("Something went wrong. Please try again: /start")    
         await bot.run_until_disconnected()
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
