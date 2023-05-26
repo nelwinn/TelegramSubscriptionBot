@@ -13,6 +13,8 @@ async def main():
 
         @bot.on(events.NewMessage(func=lambda e:e.is_private, pattern= "/start"))
         async def on_start(event):
+            if user_is_active(event.sender.id):
+                return show_menu(event)
             await bot.send_message(event.sender.id, "Welcome to bet tips bot! Get started to see daily tips for soccer/basketball sports",
                                    buttons=[[Button.text("Get started")]])
             
@@ -30,6 +32,7 @@ async def main():
                                                     .....
                                                 })
             """
+            #Ask questions and store them to database
             async with bot.conversation(PeerUser(event.sender.id), timeout=1500) as conv:
                 await conv.send_message("Please enter your Name: ")
                 name = (await conv.get_response()).text
@@ -51,17 +54,33 @@ async def main():
 
                 await conv.send_message("Please enter your Check Size: ")
                 check_size = (await conv.get_response()).text
-                
+
                 #Call to store_details function
                 success = await store_details({"user_id": event.sender.id, "fund_name": fund_name,
                                      "fund_website": fund_website, "fund_size": fund_size,
                                      "stage_of_invest": stage_of_invest, "preferred_deal": preferred_deal,
-                                     "check_size": check_size})
+                                     "check_size": check_size, "name": name})
                 if success:
                     await conv.send_message("Your details are successfully stored.",
                                             buttons=[[Button.text("Menu ➡️")]])
                 else:
                     await conv.send_message("Something went wrong. Please try again: /start")    
+        
+        @bot.on(events.NewMessage(pattern="Menu"))
+        async def show_menu(event):
+            await bot.send_message("Select an option below: ", buttons=MENU_BUTTONS)
+
+        @bot.on(events.NewMessage(pattern="Subscribe"))
+        async def subscribe(event):
+            async with bot.conversation(event.sender.id, timeout=1500) as conv:
+                await conv.send_message("Enter your token for access: ")
+                token = (await conv.get_response()).text
+                response = await add_subscription(token, event.sender.id)
+                await conv.send_message(response, buttons=[[Button.text("Menu ➡️")]])
+        @bot.on(events.NewMessage(pattern="Unsubscribe"))
+        async def unsubscribe(event):
+            await remove_subscription(event.sender.id)
+            await bot.send_message(event.sender.id, "Your subscription is removed.",buttons=[[Button.text("Menu ➡️")]])
         await bot.run_until_disconnected()
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
