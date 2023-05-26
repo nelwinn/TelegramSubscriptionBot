@@ -18,6 +18,18 @@ async def main():
             
         @bot.on(events.NewMessage(pattern="Get Started"))
         async def handle_new_user(event):
+            """
+            Each questions mentioned below can be edited/deleted/added according to your needs.
+            Make sure to update the variable names also to avoid confusion.
+            Example: to add a new question, add following lines:
+                age = await conv.send_message("Enter your age": )
+                age = (await conv.get_response()).text
+            Also make sure to add 'age' in the call to store_details function at the end:
+                success = await store_details({"user_id": event.sender.id, "age": age,
+                                                    .....
+                                                    .....
+                                                })
+            """
             async with bot.conversation(PeerUser(event.sender.id), timeout=1500) as conv:
                 await conv.send_message("Please enter your Name: ")
                 name = (await conv.get_response()).text
