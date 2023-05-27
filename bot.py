@@ -16,7 +16,7 @@ async def main():
         async def on_start(event):
             if await user_is_active(event.sender.id):
                 return await show_menu(event)
-            await bot.send_message(event.sender.id, "Welcome to bet tips bot! Get started to see daily tips for soccer/basketball sports",
+            await bot.send_message(event.sender.id, START_MESSAGE,
                                    buttons=[[Button.text("Get Started", resize=True)]])
             
         @bot.on(events.NewMessage(pattern="Get Started"))
@@ -119,7 +119,15 @@ async def main():
             async with bot.conversation(event.sender.id) as conv:
                 await conv.send_message("Send the exact message to be broadcasted (It can be any type of telegram message): ")
                 message = await conv.get_response()
-
+                await conv.send_message("Sure to send the above message to all users?",
+                                        buttons=[[Button.text("Yes", resize=True), Button.text("No")]])
+                if (await conv.get_response()).text == "Yes":
+                    users = [x['user_id'] for x in await get_all_users()]
+                    for user in users:
+                        try:
+                            await bot.send_message(PeerUser(int(user)), message)
+                        except:
+                            print("Could not message", user)
         @bot.on(events.NewMessage(pattern="Generate Token"))
         async def gen_token(event):
             #Add feature to specify expiry time

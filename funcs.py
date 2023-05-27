@@ -42,16 +42,16 @@ async def add_subscription(token, user_id):
         token_expires_on = datetime.datetime.fromtimestamp(q[0]['expiry'])
         if now > token_expires_on:
             return "The token has expired."
-        q = await TOKENS.update_one({"token": token}, {"$set": {"used": 1}})
+        q = await TOKENS.update_many({"_id": ObjectId(token)}, {"$set": {"used": 1}})
         if q.modified_count == 1:
-            await USERS.update_one({"user_id": user_id}, {"$set": {"active": 1}})
+            await USERS.update_many({"user_id": user_id}, {"$set": {"active": 1}})
             return "You have successfully subscribed."
         else:
             return "Something went wrong, try again. /start"
     else:
         return "Invalid token"   
 async def remove_subscription(user_id):
-    await USERS.update_one({"user_id": user_id}, {"$set": {"active": 0}})
+    await USERS.update_many({"user_id": user_id}, {"$set": {"active": 0}})
 
 async def user_is_active(user_id):
     q = USERS.find({"user_id": user_id, "active": 1})
@@ -67,6 +67,11 @@ async def get_all_admins():
     admins = ADMINS.find({})
     admins = await admins.to_list(999)
     return admins
+
+async def get_all_users():
+    users = USERS.find({})
+    users = await users.to_list(999)
+    return users
 
 async def generate_new_token():
     q = await TOKENS.insert_one({"time": datetime.datetime.now().timestamp(), "used": 0, "expiry": 999})
