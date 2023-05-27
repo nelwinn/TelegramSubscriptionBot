@@ -1,4 +1,5 @@
 import motor.motor_asyncio, datetime
+from bson import ObjectId
 from config import *
 
 
@@ -12,8 +13,7 @@ SENT_MESSAGES = db.sent_messages #To keep track of number of messages sent daily
 
 
 async def store_details(document, existing_user):
-    q = await USERS.find({"user_id": document["user_id"]})
-    print(q)
+    q = USERS.find({"user_id": document["user_id"]})
     q = await q.to_list(1)
     if not existing_user:
         document['active'] = 0 #Subscription is not yet active
@@ -23,7 +23,7 @@ async def store_details(document, existing_user):
     if q:
         await USERS.delete_one({"user_id": document["user_id"]})
     q = await USERS.insert_one(document)
-    if q.inserted_count == 1:
+    if q.inserted_id:
         return True
 
 async def add_subscription(token, user_id):
@@ -33,7 +33,7 @@ async def add_subscription(token, user_id):
         "expiry"      : <time>
         "used"        : 1/0
     """
-    q = TOKENS.find({"token": token})
+    q = TOKENS.find({"_id": ObjectId(token)})
     q = await q.to_list(1)
     if q:
         if q[0]['used'] == 1:
@@ -48,7 +48,8 @@ async def add_subscription(token, user_id):
             return "You have successfully subscribed."
         else:
             return "Something went wrong, try again. /start"
-        
+    else:
+        return "Invalid token"   
 async def remove_subscription(user_id):
     await USERS.update_one({"user_id": user_id}, {"$set": {"active": 0}})
 
@@ -68,6 +69,5 @@ async def get_all_admins():
     return admins
 
 async def generate_new_token():
-    q = await TOKENS.insert_one({"time": datetime.datetime.now().timestamp})
-    print(q, dir(q))
-    return q._id
+    q = await TOKENS.insert_one({"time": datetime.datetime.now().timestamp(), "used": 0, "expiry": 999})
+    return str(q.inserted_id)

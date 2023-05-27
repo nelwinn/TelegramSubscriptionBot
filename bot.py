@@ -5,6 +5,7 @@ from telethon import TelegramClient, events, Button
 from funcs import *
 from config import *
 
+
 async def main():
     bot = await TelegramClient('botsession', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
     async with bot:
@@ -13,10 +14,10 @@ async def main():
 
         @bot.on(events.NewMessage(func=lambda e:e.is_private, pattern= "/start"))
         async def on_start(event):
-            if user_is_active(event.sender.id):
-                return show_menu(event)
+            if await user_is_active(event.sender.id):
+                return await show_menu(event)
             await bot.send_message(event.sender.id, "Welcome to bet tips bot! Get started to see daily tips for soccer/basketball sports",
-                                   buttons=[[Button.text("Get started")]])
+                                   buttons=[[Button.text("Get Started", resize=True)]])
             
         @bot.on(events.NewMessage(pattern="Get Started"))
         async def handle_new_user(event, existing_user=False):
@@ -49,9 +50,13 @@ async def main():
                 await conv.send_message("Please enter your Stage of Invest: ")
                 stage_of_invest = (await conv.get_response()).text
 
-                await conv.send_message("Please enter your Preferred deal type (Tokens/Equity): ")
+                await conv.send_message("Please enter your Preferred deal type (Tokens/Equity): ",
+                                        buttons=[[Button.text("Tokens", single_use=True, resize=True)],
+                                                 [Button.text("Equity")]])
                 preferred_deal = (await conv.get_response()).text
-
+                if not preferred_deal in ("Equity", "Tokens"):
+                    return await conv.send_message("Preferred deal type must be either 'Tokens' or 'Equity'.\n\nTry again /start")
+                
                 await conv.send_message("Please enter your Check Size: ")
                 check_size = (await conv.get_response()).text
 
@@ -68,7 +73,7 @@ async def main():
         
         @bot.on(events.NewMessage(pattern="Menu"))
         async def show_menu(event):
-            await bot.send_message("Select an option below: ", buttons=MENU_BUTTONS)
+            await bot.send_message(event.sender.id, "Select an option below: ", buttons=MENU_BUTTONS)
 
         @bot.on(events.NewMessage(pattern="Subscribe"))
         async def subscribe(event):
@@ -103,12 +108,23 @@ async def main():
         @bot.on(events.NewMessage(pattern="/dashboard"))
         async def admin_dashboard(event):
             admins = [x['username'] for x in await get_all_admins()]
-            if not event.sender.username in admins or not event.sender.id in admins:
-                return await event.reply("Not authorized")
-            
+            if not event.sender.username in admins:
+                if (not event.sender.id in admins):
+                    return await event.reply("Not authorized")
             buttons = CREATER_ONLY_BUTTONS + DASHBOARD_BUTTONS if event.sender.username == BOT_OWNER else DASHBOARD_BUTTONS
-            await bot.send_message("Welcome to Admin dashboard.", buttons=buttons)
-            
+            await bot.send_message(event.sender.id, "Welcome to Admin dashboard.", buttons=buttons)
+
+        @bot.on(events.NewMessage(pattern="Broadcast Message"))
+        async def broadcast_message(event):
+            async with bot.conversation(event.sender.id) as conv:
+                await conv.send_message("Send the exact message to be broadcasted (It can be any type of telegram message): ")
+                message = await conv.get_response()
+
+        @bot.on(events.NewMessage(pattern="Generate Token"))
+        async def gen_token(event):
+            #Add feature to specify expiry time
+            token = await generate_new_token()
+            await event.reply(token)
         await bot.run_until_disconnected()
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
