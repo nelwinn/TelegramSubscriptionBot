@@ -1,10 +1,10 @@
-import motor, datetime
+import motor.motor_asyncio, datetime
 from config import *
 
 
 client = motor.motor_asyncio.AsyncIOMotorClient(DATABASE_URL)
 
-db = client['subscribeprivate']
+db = client[DATABASE_NAME]
 USERS = db.users
 TOKENS = db.tokens
 ADMINS = db.admins
@@ -12,7 +12,8 @@ SENT_MESSAGES = db.sent_messages #To keep track of number of messages sent daily
 
 
 async def store_details(document, existing_user):
-    q = USERS.find_one({"user_id": document["user_id"]})
+    q = await USERS.find({"user_id": document["user_id"]})
+    print(q)
     q = await q.to_list(1)
     if not existing_user:
         document['active'] = 0 #Subscription is not yet active
@@ -55,6 +56,7 @@ async def user_is_active(user_id):
     q = USERS.find({"user_id": user_id, "active": 1})
     q = await q.to_list(1)
     if q:
+        print(q)
         return True
 
 async def update_notif_preferences(user_id, num):
@@ -64,3 +66,8 @@ async def get_all_admins():
     admins = ADMINS.find({})
     admins = await admins.to_list(999)
     return admins
+
+async def generate_new_token():
+    q = await TOKENS.insert_one({"time": datetime.datetime.now().timestamp})
+    print(q, dir(q))
+    return q._id
