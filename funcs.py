@@ -1,3 +1,4 @@
+import csv
 import motor.motor_asyncio, datetime
 from bson import ObjectId
 from config import *
@@ -33,6 +34,7 @@ async def add_subscription(token, user_id):
         "expiry"      : <time>
         "used"        : 1/0
     """
+
     q = TOKENS.find({"_id": ObjectId(token)})
     q = await q.to_list(1)
     if q:
@@ -50,6 +52,7 @@ async def add_subscription(token, user_id):
             return "Something went wrong, try again. /start"
     else:
         return "Invalid token"   
+    
 async def remove_subscription(user_id):
     await USERS.update_many({"user_id": user_id}, {"$set": {"active": 0}})
 
@@ -69,10 +72,29 @@ async def get_all_admins():
     return admins
 
 async def get_all_users():
-    users = USERS.find({})
+    users = USERS.find({"active": 1})
     users = await users.to_list(999)
     return users
 
 async def generate_new_token():
     q = await TOKENS.insert_one({"time": datetime.datetime.now().timestamp(), "used": 0, "expiry": 999})
     return str(q.inserted_id)
+
+async def generate_report():
+    query = USERS.find({})
+    query = await query.to_list(999)
+    query = query[::-1]
+    with open("report.csv", "w", encoding='UTF-8') as f:
+        writer = csv.writer(f, delimiter=",", lineterminator="\n")
+        writer.writerow(['NAME', 'USERNAME',
+                        'FUND NAME', "FUND SIZE", "STAGE OF INVEST",
+                        "PREFERRED DEAL", "CHECK SIZE", "SUBSCRIBED", "MAX NOTIFICAIONS"])
+        for row in query:
+            writer.writerow(
+                [row['name'], row['username'], row['stage_of_invest'], row['preferred_deal'], row['check_size'],
+                 row['active'], row['max_daily_notifications']])
+    return "report.csv"
+
+
+async def add_admin(username);
+    return await ADMINS.insert_one({"username": username})
